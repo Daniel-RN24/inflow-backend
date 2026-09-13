@@ -6,15 +6,56 @@ export const getCuentas = async (req, res) => {
     // Variables principales
     const usuarios_id = req.usuario.id;
 
-    // Obtener las cuentas asociadas a dicho usuario
-    const results = await prisma.cuentas.findMany({ where: { usuarios_id } });
+    // Obtener variables de paginacion
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const { search, type } = req.query;
+
+    const filters = {};
+
+    if (search) {
+      filters.nombre = {
+        contains: search,
+      };
+    }
+
+    if (type) {
+      filters.tipo = type;
+    }
+
+    const where = {
+      usuarios_id,
+      ...filters,
+    };
+
+    const [total, results] = await Promise.all([
+      prisma.cuentas.count({ where }),
+      prisma.cuentas.findMany({
+        where,
+        take: limit,
+        skip,
+      }),
+    ]);
 
     // Enviar los resultados
-    res.json({ results });
+    res.json({
+      data: results,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPreviousPage: page > 1,
+      },
+    });
   } catch (error) {
     console.log(error);
   }
 };
+
 export const getCuentaById = async (req, res) => {
   try {
     // Variables principales
