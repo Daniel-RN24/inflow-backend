@@ -13,7 +13,7 @@ export const getTransacciones = async (req, res) => {
     const skip = (page - 1) * limit;
 
     // Filtros de la API
-    const { type, search, category, order_by, fromDate, untilDate } =
+    const { type, search, category, fromDate, untilDate } =
       req.query;
 
     let filters = {};

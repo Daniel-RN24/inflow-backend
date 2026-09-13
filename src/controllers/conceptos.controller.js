@@ -5,14 +5,53 @@ export const getConceptos = async (req, res) => {
     // Variables principales
     const usuarios_id = req.usuario.id;
 
-    // Llamado a la BD incluyendo info de categorias
-    const results = await prisma.conceptos.findMany({
-      where: { usuarios_id },
-      include: { categorias: true },
-    });
+    // Leer parametros de paginas con valores por defecto
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 5;
+    const skip = (page - 1) * limit;
+
+    // Filtros de la api
+    const { search, category } = req.query;
+
+    let filters = {};
+
+    if (search) {
+      filters.nombre = {
+        contains: search,
+      };
+    }
+
+    if (category) {
+      filters.categorias_id = parseInt(category);
+    }
+
+    const where = {
+      usuarios_id,
+      ...filters,
+    };
+
+    const [total, results] = await Promise.all([
+      prisma.conceptos.count({ where }),
+      prisma.conceptos.findMany({
+        where,
+        include: { categorias: true },
+        take: limit,
+        skip,
+      }),
+    ]);
 
     // Envio de resultados
-    res.json({ results });
+    res.json({
+      data: results,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasNextPage: page < Math.ceil(total / limit),
+        hasPrevPage: page > 1,
+      },
+    });
   } catch (error) {
     console.log(error);
   }
@@ -33,7 +72,7 @@ export const getConceptoById = async (req, res) => {
     });
 
     // Envio de resultados
-    res.json({ results });
+    res.json(results);
   } catch (error) {
     console.log(error);
   }
@@ -52,12 +91,11 @@ export const createConcepto = async (req, res) => {
       usuarios_id,
     };
 
-    console.log(data);
     // Crear un concepto de acuerdo al usuario logueado
     const results = await prisma.conceptos.create({ data });
 
     // Enviar la informacion
-    res.json({ results });
+    res.json({ results, success: true });
   } catch (error) {
     console.log(error);
   }
@@ -79,7 +117,7 @@ export const updateConcepto = async (req, res) => {
     const results = await prisma.conceptos.update({ where: { id }, data });
 
     // Envio de resultados
-    res.json({ results });
+    res.json({ results, success: true });
   } catch (error) {
     console.log(error);
   }
@@ -106,7 +144,7 @@ export const deleteConcepto = async (req, res) => {
     const results = await prisma.conceptos.delete({ where: { id } });
 
     // Envio de resultados
-    res.json({ results });
+    res.json(results);
   } catch (error) {
     console.log(error);
   }
