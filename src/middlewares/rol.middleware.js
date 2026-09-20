@@ -2,6 +2,13 @@ import prisma from "../../prismaClient.js";
 const checkRol = async (req, res, next) => {
   try {
     const id = parseInt(req.params.id);
+
+    if (Number.isNaN(id)) {
+      return res
+        .status(400)
+        .json({ success: false, message: "El id no es válido" });
+    }
+
     const usuarios_id = parseInt(req.usuario.id);
 
     const modelo = req.path.split("/")[1];
@@ -13,8 +20,8 @@ const checkRol = async (req, res, next) => {
     // Validar que el usuario logueado si este realizando sus propias acciones
 
     if (!existeRegistro) {
-      const error = new Error("Accion no valida");
-      return res.status(403).json({ msg: error.message });
+      const error = new Error("Recurso no encontrado");
+      return res.status(404).json({ msg: error.message });
     }
 
     next();

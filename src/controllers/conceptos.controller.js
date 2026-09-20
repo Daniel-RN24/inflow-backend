@@ -84,20 +84,40 @@ export const createConcepto = async (req, res) => {
     const usuarios_id = req.usuario.id;
     const { nombre, categorias_id } = req.body;
 
-    // Agregar al req.body el usuario_id
-    const data = {
-      nombre,
-      categorias_id,
-      usuarios_id,
-    };
-
     // Crear un concepto de acuerdo al usuario logueado
-    const results = await prisma.conceptos.create({ data });
+    const concepto = await prisma.conceptos.create({
+      data: {
+        nombre,
+        categorias_id,
+        usuarios_id,
+      },
+    });
 
     // Enviar la informacion
-    res.json({ results, success: true });
+    res.status(201).json({
+      data: concepto,
+      success: true,
+      message: "Concepto creado correctamente",
+    });
   } catch (error) {
-    console.log(error);
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "Ya existe un concepto con ese nombre",
+      });
+    }
+
+    if (error.code === "P2003") {
+      return res.status(400).json({
+        success: false,
+        message: "La categoría indicada no existe",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    });
   }
 };
 
@@ -107,19 +127,33 @@ export const updateConcepto = async (req, res) => {
     const id = parseInt(req.params.id);
     const { nombre, categorias_id } = req.body;
 
-    // Objeto para la accion de la bd
-    const data = {
-      nombre,
-      categorias_id,
-    };
-
     // Actualizacion de la informacion
-    const results = await prisma.conceptos.update({ where: { id }, data });
+    const concepto = await prisma.conceptos.update({
+      where: { id },
+      data: {
+        nombre,
+        categorias_id,
+      },
+    });
 
     // Envio de resultados
-    res.json({ results, success: true });
+    res.json({
+      data: concepto,
+      success: true,
+      message: "Concepto actualizado correctamente",
+    });
   } catch (error) {
-    console.log(error);
+    if (error.code === "P2002") {
+      return res.status(409).json({
+        success: false,
+        message: "Ya existe un concepto con ese nombre",
+      });
+    }
+
+    return res.status(500).json({
+      success: false,
+      message: "Error interno del servidor",
+    });
   }
 };
 
