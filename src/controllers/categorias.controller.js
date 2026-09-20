@@ -6,13 +6,46 @@ export const getCategorias = async (req, res) => {
     // Variabels principales
     const usuarios_id = req.usuario.id;
 
-    // Obtener todas las categorias asociadas a ese usuario
-    const results = await prisma.categorias.findMany({
-      where: { usuarios_id },
-    });
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const skip = (page - 1) * limit;
+
+    const { search, type } = req.query;
+
+    const filters = {};
+
+    if (search) {
+      filters.nombre = {
+        contains: search,
+      };
+    }
+
+    if (type) {
+      filters.tipo = type;
+    }
+
+    const where = {
+      ...filters,
+      usuarios_id,
+    };
+
+    const [total, results] = await Promise.all([
+      prisma.categorias.count({ where }),
+      prisma.categorias.findMany({ where, take: limit, skip }),
+    ]);
 
     // Envio de los resultados;
-    res.json({ results });
+    res.json({
+      data: results,
+      meta: {
+        total,
+        page,
+        limit,
+        totalPages: Math.ceil(total / limit),
+        hasPreviousPage: page > 1,
+        hasNextPage: page < Math.ceil(total / limit),
+      },
+    });
   } catch (error) {
     console.log(error);
   }
